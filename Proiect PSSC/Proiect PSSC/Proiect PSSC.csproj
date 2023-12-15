@@ -13,10 +13,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Domain\Commands\" />
-    <Folder Include="Domain\Workflows\" />
-    <Folder Include="Domain\Repositories\" />
-    <Folder Include="Domain\Operations\" />
     <Folder Include="Flow Diagrams\" />
   </ItemGroup>
 
