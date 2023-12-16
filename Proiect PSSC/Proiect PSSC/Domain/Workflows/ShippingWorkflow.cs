@@ -20,8 +20,8 @@ namespace Proiect_PSSC.Domain.Workflows
             IShippingState products = ShippingOperation.SendOrderToShippingService(unshippedOrder);
 
             return products.Match(
-                    whenUnshippedOrder: unshippedOrder => new ShippingSuccessEvent("The order has not been payed.") as IShippingEvent,
-                    whenShippedOrder: shippedOrder => new ShippingSuccessEvent("Waiting for payment...")
+                    whenUnshippedOrder: unshippedOrder => new ShippingSuccessEvent("The order has not been payed.", unshippedOrder.ClientId) as IShippingEvent,
+                    whenShippedOrder: shippedOrder => new ShippingSuccessEvent(shippedOrder.SuccessMessage, shippedOrder.ClientId)
                 );
         }
     }

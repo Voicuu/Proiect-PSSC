@@ -25,9 +25,9 @@ namespace Proiect_PSSC.Domain.Workflows
             return products.Match(
                     whenUnpayedOrder: unpayedOrder => new BillingFailedEvent("The order has not been payed.") as IBillingEvent,
                     whenPayByCardOrder: payByCardOrder => new BillingFailedEvent("Waiting for payment..."),
-                    whenPayByCashOrder: payByCashOrder => new BillingSuccessEvent(payByCashOrder.ProductList,payByCashOrder.Total),
+                    whenPayByCashOrder: payByCashOrder => new BillingSuccessEvent(payByCashOrder.ProductList, payByCashOrder.Total, payByCashOrder.ClientId),
                     whenPaymentFailedOrder: paymentFailedOrder => new BillingFailedEvent("You are broke."),
-                    whenPayedOrder: payedOrder => new BillingSuccessEvent(payedOrder.ProductList, payedOrder.Total)
+                    whenPayedOrder: payedOrder => new BillingSuccessEvent(payedOrder.ProductList, payedOrder.Total, payedOrder.ClientId)
                 );
         }
     }

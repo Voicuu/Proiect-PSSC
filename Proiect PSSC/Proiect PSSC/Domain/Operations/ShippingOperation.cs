@@ -11,7 +11,7 @@ namespace Proiect_PSSC.Domain.Operations
     {
         public static IShippingState SendOrderToShippingService(UnshippedOrder unshippedOrder)
         {
-            return new ShippedOrder("The order has been successfully sent.\n The package will arrive in approximately 2-3 days.\nCourier: Sameday", unshippedOrder.ClientId);
+            return new ShippedOrder("The order has been successfully sent.\nThe package will arrive in approximately 2-3 days.\nCourier: Sameday", unshippedOrder.ClientId);
         }
     }
 }

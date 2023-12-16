@@ -26,7 +26,7 @@ namespace Proiect_PSSC.Domain.Workflows
                     whenUnvalidatedOrder: unvalidatedOrder => new OrderProcessingFailedEvent("Unexpected unvalidated state") as IOrderProcessingEvent,
                     whenInvalidatedOrder: invalidOrder => new OrderProcessingFailedEvent(invalidOrder.Reason),
                     whenValidatedOrder: validatedOrder => new OrderProcessingFailedEvent("Unavailable products"),
-                    whenAvailableOrder: availableOrder => new OrderProcessingSuccessEvent(availableOrder.ProductList)
+                    whenAvailableOrder: availableOrder => new OrderProcessingSuccessEvent(availableOrder.ProductList, availableOrder.ClientId)
                 );
         }
     }

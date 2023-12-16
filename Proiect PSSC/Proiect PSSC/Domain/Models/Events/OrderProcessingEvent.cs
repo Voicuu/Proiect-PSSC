@@ -27,9 +27,12 @@ namespace Proiect_PSSC.Domain.Models.Events
         {
             public IReadOnlyCollection<AvailableProduct> ProductList { get; }
 
-            public OrderProcessingSuccessEvent(IReadOnlyCollection<AvailableProduct> productList)
+            public string ClientId { get; }
+
+            public OrderProcessingSuccessEvent(IReadOnlyCollection<AvailableProduct> productList, string clientId)
             {
                 ProductList = productList;
+                ClientId = clientId;
             }
         }
     }

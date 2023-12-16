@@ -15,11 +15,14 @@ namespace Proiect_PSSC.Domain.Models.Events
 
         public record ShippingSuccessEvent : IShippingEvent
         {
-            public string Reason { get; }
+            public string SuccessMessage { get; }
 
-            public ShippingSuccessEvent(string reason)
+            public string ClientId { get; }
+
+            public ShippingSuccessEvent(string successMessage, string clientId)
             {
-                Reason = reason;
+                SuccessMessage = successMessage;
+                ClientId = clientId;
             }
         }
     }

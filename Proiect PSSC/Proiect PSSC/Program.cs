@@ -12,8 +12,7 @@ namespace Proiect_PSSC
         static async Task Main(string[] args)
         {
             var listOfProducts = ReadListOfProducts();
-            string clientId = "1";
-            OrderProcessingCommand command = new(listOfProducts, clientId);
+            OrderProcessingCommand command = new(listOfProducts, "10");
             OrderProcessingWorkflow workflow = new();
             var result = await workflow.ExecuteAsync(command, CheckProductExists, GetAvailableProducts);
 
@@ -28,10 +27,12 @@ namespace Proiect_PSSC
                         string paymentMethod;
                         Console.WriteLine("Processing successful");
                         ShowList(@event.ProductList);
-                        
+
+                        Console.WriteLine();
+
                         paymentMethod = ChoosePaymentMethod();
 
-                        BillingCommand billingCommand = new(@event.ProductList, clientId, paymentMethod);
+                        BillingCommand billingCommand = new(@event.ProductList, @event.ClientId, paymentMethod);
 
                         BillingWorkflow billingWorkflow = new();
 
@@ -47,7 +48,9 @@ namespace Proiect_PSSC
                                 {
                                     Console.WriteLine($"Payment succeeded, amount payed: {@event.Total}");
 
-                                    ShippingCommand shippingCommand = new(@event.ProductList, @event.Total, clientId);
+                                    Console.WriteLine();
+
+                                    ShippingCommand shippingCommand = new(@event.ProductList, @event.Total, @event.ClientId);
                                     ShippingWorkflow shippingWorkflow = new();
 
                                     var shippingResult = shippingWorkflow.Execute(shippingCommand);
@@ -55,7 +58,7 @@ namespace Proiect_PSSC
                                     shippingResult.Match(
                                         whenShippingSuccessEvent: @event =>
                                         {
-                                            Console.WriteLine($"Successful delivery for client: {clientId}");
+                                            Console.WriteLine($"Successful delivery for client: {@event.ClientId}\n{@event.SuccessMessage}");
                                             return @event;
                                         }
                                         );

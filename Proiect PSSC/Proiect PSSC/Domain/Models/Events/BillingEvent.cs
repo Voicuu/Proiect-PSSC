@@ -26,12 +26,16 @@ namespace Proiect_PSSC.Domain.Models.Events
         public record BillingSuccessEvent : IBillingEvent
         {
             public IReadOnlyCollection<AvailableProduct> ProductList { get; }
+
             public decimal Total {  get; }
 
-            public BillingSuccessEvent(IReadOnlyCollection<AvailableProduct> productList, decimal total)
+            public string ClientId { get; }
+
+            public BillingSuccessEvent(IReadOnlyCollection<AvailableProduct> productList, decimal total, string clientId)
             {
                 ProductList = productList;
                 Total = total;
+                ClientId = clientId;
             }
         }
     }
