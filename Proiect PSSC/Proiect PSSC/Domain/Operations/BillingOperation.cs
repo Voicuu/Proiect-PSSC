@@ -27,5 +27,25 @@ namespace Proiect_PSSC.Domain.Operations
             }
             return new PayByCashOrder(unpayedOrder.ProductList, CalculateTotal(unpayedOrder.ProductList.ToList()), unpayedOrder.ClientId);
         }
+
+        public static IBillingState PayOrder(IBillingState billingState) =>
+            billingState.Match(
+                whenUnpayedOrder: unpayedOrder => unpayedOrder,
+                whenPayByCardOrder: payByCardOrder => PayByCard(payByCardOrder),
+                whenPayByCashOrder: payByCashOrder => payByCashOrder,
+                whenPayedOrder: payedOrder => payedOrder,
+                whenPaymentFailedOrder: paymentFailedOrder => paymentFailedOrder
+                );
+        
+
+        private static IBillingState PayByCard(PayByCardOrder payByCardOrder)
+        {
+            decimal funds = payByCardOrder.Total - 1;
+            if (funds >= payByCardOrder.Total)
+            {
+                return new PayedOrder(payByCardOrder.ProductList, payByCardOrder.Total, payByCardOrder.ClientId);
+            }
+            return new PaymentFailedOrder(payByCardOrder.ProductList, payByCardOrder.ClientId);
+        }
     }
 }

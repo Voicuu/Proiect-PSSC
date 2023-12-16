@@ -20,7 +20,7 @@ namespace Proiect_PSSC.Domain.Workflows
         {
             UnpayedOrder unpayedOrder = new UnpayedOrder(command.ProductList, command.ClientId);
             IBillingState products = BillingOperation.ChoosePaymentMethod(unpayedOrder, command.paymentMethod);
-            //products = await OrderProcessingOperation.CheckAvailability(products, getAvailableProducts);
+            products = BillingOperation.PayOrder(products);
 
             return products.Match(
                     whenUnpayedOrder: unpayedOrder => new BillingFailedEvent("The order has not been payed.") as IBillingEvent,
