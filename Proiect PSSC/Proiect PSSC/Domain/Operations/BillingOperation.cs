@@ -40,7 +40,7 @@ namespace Proiect_PSSC.Domain.Operations
 
         private static IBillingState PayByCard(PayByCardOrder payByCardOrder)
         {
-            decimal funds = payByCardOrder.Total - 1;
+            decimal funds = payByCardOrder.Total + 1;
             if (funds >= payByCardOrder.Total)
             {
                 return new PayedOrder(payByCardOrder.ProductList, payByCardOrder.Total, payByCardOrder.ClientId);
