@@ -12,7 +12,8 @@ namespace Proiect_PSSC
         static async Task Main(string[] args)
         {
             var listOfProducts = ReadListOfProducts();
-            OrderProcessingCommand command = new(listOfProducts, "1");
+            string clientId = "1";
+            OrderProcessingCommand command = new(listOfProducts, clientId);
             OrderProcessingWorkflow workflow = new();
             var result = await workflow.ExecuteAsync(command, CheckProductExists, GetAvailableProducts);
 
@@ -24,11 +25,47 @@ namespace Proiect_PSSC
                     },
                     whenOrderProcessingSuccessEvent: @event =>
                     {
+                        string paymentMethod;
                         Console.WriteLine("Processing successful");
                         ShowList(@event.ProductList);
+                        
+                        paymentMethod = ChoosePaymentMethod();
+
+                        BillingCommand billingCommand = new(@event.ProductList, clientId, paymentMethod);
+
+                        BillingWorkflow billingWorkflow = new();
+
+                        var billingResult = billingWorkflow.Execute(billingCommand);
+
+                        billingResult.Match(
+                                whenBillingFailedEvent: @event =>
+                                {
+                                    Console.WriteLine($"Payment failed: {@event.Reason}");
+                                    return @event;
+                                },
+                                whenBillingSuccessEvent: @event =>
+                                {
+                                    Console.WriteLine($"Payment succeeded, amount payed: {@event.Total}");
+                                    return @event;
+                                }
+                            );
+
+
                         return @event;
                     }
                 );
+        }
+
+        private static string ChoosePaymentMethod()
+        {
+            string paymentMethod = "";
+            do
+            {
+                paymentMethod = ReadValue("How would you like to pay: (Card/Cash)\nYour choice: ").ToLower();
+                
+            } while (paymentMethod!="cash" && paymentMethod != "card");
+
+            return paymentMethod;
         }
 
         private static void ShowList(IReadOnlyCollection<AvailableProduct> products)
