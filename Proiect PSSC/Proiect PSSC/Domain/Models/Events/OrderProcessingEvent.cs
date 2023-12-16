@@ -25,7 +25,7 @@ namespace Proiect_PSSC.Domain.Models.Events
 
         public record OrderProcessingSuccessEvent : IOrderProcessingEvent
         {
-            IReadOnlyCollection<AvailableProduct> ProductList { get; }
+            public IReadOnlyCollection<AvailableProduct> ProductList { get; }
 
             public OrderProcessingSuccessEvent(IReadOnlyCollection<AvailableProduct> productList)
             {
