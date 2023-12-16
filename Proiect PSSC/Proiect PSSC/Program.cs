@@ -46,6 +46,20 @@ namespace Proiect_PSSC
                                 whenBillingSuccessEvent: @event =>
                                 {
                                     Console.WriteLine($"Payment succeeded, amount payed: {@event.Total}");
+
+                                    ShippingCommand shippingCommand = new(@event.ProductList, @event.Total, clientId);
+                                    ShippingWorkflow shippingWorkflow = new();
+
+                                    var shippingResult = shippingWorkflow.Execute(shippingCommand);
+
+                                    shippingResult.Match(
+                                        whenShippingSuccessEvent: @event =>
+                                        {
+                                            Console.WriteLine($"Successful delivery for client: {clientId}");
+                                            return @event;
+                                        }
+                                        );
+
                                     return @event;
                                 }
                             );

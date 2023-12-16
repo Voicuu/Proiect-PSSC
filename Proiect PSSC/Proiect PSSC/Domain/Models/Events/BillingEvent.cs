@@ -25,7 +25,7 @@ namespace Proiect_PSSC.Domain.Models.Events
 
         public record BillingSuccessEvent : IBillingEvent
         {
-            IReadOnlyCollection<AvailableProduct> ProductList { get; }
+            public IReadOnlyCollection<AvailableProduct> ProductList { get; }
             public decimal Total {  get; }
 
             public BillingSuccessEvent(IReadOnlyCollection<AvailableProduct> productList, decimal total)
