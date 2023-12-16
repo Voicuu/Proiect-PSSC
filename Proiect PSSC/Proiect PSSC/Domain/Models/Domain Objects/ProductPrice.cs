@@ -48,5 +48,20 @@ namespace Proiect_PSSC.Domain.Models.Domain_Objects
             
             return None;
         }
+
+        public static ProductPrice operator +(ProductPrice price1, ProductPrice price2)
+        {
+            return new(price1.Value + price2.Value);
+        }
+
+        public static ProductPrice operator *(ProductPrice price, ProductQuantity quantity)
+        {
+            return new(price.Value * quantity.Value);
+        }
+
+        public static ProductPrice operator *(ProductQuantity quantity, ProductPrice price)
+        {
+            return new(price.Value * quantity.Value);
+        }
     }
 }
