@@ -1,5 +1,5 @@
 ﻿using CSharp.Choices;
-using Proiect_PSSC.Domain.Models.Validations;
+using Proiect_PSSC.Domain.Models.Domain_Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,8 +13,8 @@ namespace Proiect_PSSC.Domain.Models.States
     {
         public interface IShippingState { }
 
-        public record UnshippedOrder(IReadOnlyCollection<AvailableProduct> productList, decimal total) : IShippingState;
-        public record ShippedOrder(string successMessage) : IShippingState;
-
+        public record UnshippedOrder(IReadOnlyCollection<AvailableProduct> ProductList, decimal Total, string ClientId) : IShippingState;
+        
+        public record ShippedOrder(string SuccessMessage, string ClientId) : IShippingState;
     }
 }

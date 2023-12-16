@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Proiect_PSSC.Domain.Models.Validations
+namespace Proiect_PSSC.Domain.Models.Domain_Objects
 {
     public record UnvalidatedOrder(String town, String street);
 }

@@ -1,5 +1,5 @@
 ﻿using CSharp.Choices;
-using Proiect_PSSC.Domain.Models.Validations;
+using Proiect_PSSC.Domain.Models.Domain_Objects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,9 +13,12 @@ namespace Proiect_PSSC.Domain.Models
     {
         public interface IOrderState { }
 
-        public record UnvalidatedOrder(IReadOnlyCollection<UnvalidatedProduct> productList) : IOrderState;
-        public record InvalidatedOrder(IReadOnlyCollection<UnvalidatedProduct> productList, string reason) : IOrderState;
-        public record ValidatedOrder(IReadOnlyCollection<ValidatedProduct> productList) : IOrderState;
-        public record AvailableOrder(IReadOnlyCollection<AvailableProduct> productList) : IOrderState;
+        public record UnvalidatedOrder(IReadOnlyCollection<UnvalidatedProduct> ProductList, string ClientId) : IOrderState;
+        
+        public record InvalidatedOrder(IReadOnlyCollection<UnvalidatedProduct> ProductList, string Reason, string ClientId) : IOrderState;
+        
+        public record ValidatedOrder(IReadOnlyCollection<ValidatedProduct> ProductList, string ClientId) : IOrderState;
+        
+        public record AvailableOrder(IReadOnlyCollection<AvailableProduct> ProductList, string ClientId) : IOrderState;
     }
 }
