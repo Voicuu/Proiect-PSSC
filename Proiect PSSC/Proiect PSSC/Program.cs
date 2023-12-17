@@ -18,7 +18,7 @@ namespace Proiect_PSSC
             var listOfProducts = ReadListOfProducts();
             OrderProcessingCommand command = new(listOfProducts, "10");
             OrderProcessingWorkflow workflow = new();
-            var result = await workflow.ExecuteAsync(command, CheckProductExistsAsync, GetProductById);
+            var result = await workflow.ExecuteAsync(command, CheckProductExistsAsync, GetProductAsync);
 
             result.Match(
                     whenOrderProcessingFailedEvent: @event =>

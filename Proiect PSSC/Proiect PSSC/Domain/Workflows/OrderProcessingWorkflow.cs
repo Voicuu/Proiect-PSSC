@@ -16,7 +16,7 @@ namespace Proiect_PSSC.Domain.Workflows
     {
         public async Task<IOrderProcessingEvent> ExecuteAsync(OrderProcessingCommand command, 
                                                               Func<ProductId, Task<TryAsync<bool>>> checkProductExists,
-                                                              Func<ProductId, TryAsync<ValidatedProduct>> getProductById)
+                                                              Func<ProductId, Task<Option<ValidatedProduct>>> getProductById)
         {
             UnvalidatedOrder unvalidatedOrder = new UnvalidatedOrder(command.ProductList, command.ClientId);
             IOrderState products = await OrderProcessingOperation.ValidateProducts(checkProductExists, unvalidatedOrder);

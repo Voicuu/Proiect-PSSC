@@ -61,7 +61,7 @@ namespace Proiect_PSSC.Domain.Operations
         }
 
         public static Task<IOrderState> CheckAvailability(IOrderState orderState,
-                                                          Func<ProductId, TryAsync<ValidatedProduct>> getProductById) =>
+                                                          Func<ProductId, Task<Option<ValidatedProduct>>> getProductById) =>
             orderState.MatchAsync(
                 whenUnvalidatedOrder: unvalidatedOrder => Task.FromResult<IOrderState>(unvalidatedOrder),
                 whenInvalidatedOrder: invalidatedOrder => Task.FromResult<IOrderState>(invalidatedOrder),
@@ -70,7 +70,7 @@ namespace Proiect_PSSC.Domain.Operations
                 );
 
         private static async Task<IOrderState> CalculateTotalProductPriceAndCheckAvailability(ValidatedOrder validatedOrder,
-                                                                                              Func<ProductId, TryAsync<ValidatedProduct>> getProductById)
+                                                                                              Func<ProductId, Task<Option<ValidatedProduct>>> getProductById)
         {
             bool success = await CheckAvailability(validatedOrder.ProductList, getProductById);
 
@@ -87,17 +87,19 @@ namespace Proiect_PSSC.Domain.Operations
         }
 
         private static async Task<bool> CheckAvailability(IReadOnlyCollection<ValidatedProduct> productList,
-                                                          Func<ProductId, TryAsync<ValidatedProduct>> getProductById)
+                                                          Func<ProductId, Task<Option<ValidatedProduct>>> getProductById)
         {
             foreach (ValidatedProduct product in productList)
             {
-                var result = await getProductById(product.ProductId);
-                ValidatedProduct requestedProduct = result.Match(
-                    Succ: product => product,
-                    Fail: ex => {
-                        return new(null, null, new(0), null);
-                    }
-                );
+                var resultOption = await getProductById(product.ProductId);
+
+                if (resultOption.IsNone)
+                {
+                    Console.WriteLine("Not enough products.");
+                    return false;
+                }
+
+                var requestedProduct = resultOption.IfNone(() => throw new InvalidOperationException("Product not found"));
 
                 if (requestedProduct.ProductQuantity.Value < product.ProductQuantity.Value)
                 {
@@ -107,6 +109,7 @@ namespace Proiect_PSSC.Domain.Operations
 
             return true;
         }
+
 
         private static AvailableProduct CalculateTotalProductPrice(ValidatedProduct validProduct) =>
             new AvailableProduct(validProduct.ProductId,
