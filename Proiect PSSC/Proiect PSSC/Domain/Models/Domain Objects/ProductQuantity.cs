@@ -16,7 +16,7 @@ namespace Proiect_PSSC.Domain.Models.Domain_Objects
 
         private static bool IsValid(int value)
         {
-            return value >= 0 && value <= 10000;
+            return value > 0 && value <= 10000;
         }
 
         public override string ToString()
