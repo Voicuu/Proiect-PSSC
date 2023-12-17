@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using static Proiect_PSSC.Domain.Models.OrderState;
 using static LanguageExt.Prelude;
 using LanguageExt.Common;
+using LanguageExt.Pretty;
 
 
 namespace Proiect_PSSC.Domain.Operations
@@ -60,32 +61,22 @@ namespace Proiect_PSSC.Domain.Operations
         }
 
         public static Task<IOrderState> CheckAvailability(IOrderState orderState,
-                                                          Func<List<ProductId>, TryAsync<List<ValidatedProduct>>> getAvailableProducts) =>
+                                                          Func<ProductId, TryAsync<ValidatedProduct>> getProductById) =>
             orderState.MatchAsync(
                 whenUnvalidatedOrder: unvalidatedOrder => Task.FromResult<IOrderState>(unvalidatedOrder),
                 whenInvalidatedOrder: invalidatedOrder => Task.FromResult<IOrderState>(invalidatedOrder),
-                whenValidatedOrder: validatedOrder => CalculateTotalProductPriceAndCheckAvailability(validatedOrder, getAvailableProducts),
+                whenValidatedOrder: validatedOrder => CalculateTotalProductPriceAndCheckAvailability(validatedOrder, getProductById),
                 whenAvailableOrder: availableOrder => Task.FromResult<IOrderState>(availableOrder)
                 );
 
         private static async Task<IOrderState> CalculateTotalProductPriceAndCheckAvailability(ValidatedOrder validatedOrder,
-                                                       Func<List<ProductId>, TryAsync<List<ValidatedProduct>>> getAvailableProducts)
+                                                                                              Func<ProductId, TryAsync<ValidatedProduct>> getProductById)
         {
-            List<ProductId> idsToCheck = BuildIdsToCheck(validatedOrder.ProductList);
-            bool fail = false;
-            var result = await getAvailableProducts(idsToCheck);
-            List<ValidatedProduct> availableProducts = result.Match(
-                Succ: products => products,
-                Fail: ex => {
-                    fail = true;
-                    return new List<ValidatedProduct>(); 
-                }
-            );
+            bool success = await CheckAvailability(validatedOrder.ProductList, getProductById);
 
-
-            if (availableProducts.Count == idsToCheck.Count && fail == false)
+            if (success)
             {
-                return new AvailableOrder(availableProducts
+                return new AvailableOrder(validatedOrder.ProductList
                                           .Select(CalculateTotalProductPrice)
                                           .ToList()
                                           .AsReadOnly(),
@@ -95,16 +86,26 @@ namespace Proiect_PSSC.Domain.Operations
             return validatedOrder;
         }
 
-        private static List<ProductId> BuildIdsToCheck(IReadOnlyCollection<ValidatedProduct> productList)
+        private static async Task<bool> CheckAvailability(IReadOnlyCollection<ValidatedProduct> productList,
+                                                          Func<ProductId, TryAsync<ValidatedProduct>> getProductById)
         {
-            List<ProductId> productIds = new();
-
             foreach (ValidatedProduct product in productList)
             {
-                productIds.Add(product.ProductId);
+                var result = await getProductById(product.ProductId);
+                ValidatedProduct requestedProduct = result.Match(
+                    Succ: product => product,
+                    Fail: ex => {
+                        return new(null, null, new(0), null);
+                    }
+                );
+
+                if (requestedProduct.ProductQuantity.Value < product.ProductQuantity.Value)
+                {
+                    return false;
+                }
             }
 
-            return productIds;
+            return true;
         }
 
         private static AvailableProduct CalculateTotalProductPrice(ValidatedProduct validProduct) =>

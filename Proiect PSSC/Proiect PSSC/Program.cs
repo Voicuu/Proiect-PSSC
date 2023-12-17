@@ -14,7 +14,7 @@ namespace Proiect_PSSC
             var listOfProducts = ReadListOfProducts();
             OrderProcessingCommand command = new(listOfProducts, "10");
             OrderProcessingWorkflow workflow = new();
-            var result = await workflow.ExecuteAsync(command, CheckProductExists, GetAvailableProducts);
+            var result = await workflow.ExecuteAsync(command, CheckProductExists, GetProductById);
 
             result.Match(
                     whenOrderProcessingFailedEvent: @event =>
@@ -142,17 +142,13 @@ namespace Proiect_PSSC
             return TryAsync(func);
         }
 
-        private static TryAsync<List<ValidatedProduct>> GetAvailableProducts(List<ProductId> productIds)
+        private static TryAsync<ValidatedProduct> GetProductById(ProductId productId)
         {
-            List<ValidatedProduct> validatedProducts = new();
-            ValidatedProduct product1 = new(new("P111"), new("a"), new(4), new(3));
-            ValidatedProduct product2 = new(new("P112"), new("b"), new(4), new(3));
-            validatedProducts.Add(product1);
-            //validatedProducts.Add(product2);
+            ValidatedProduct product = new(new("P111"), new("a"), new(4), new(3));
 
-            Func<Task<List<ValidatedProduct>>> func = async () =>
+            Func<Task<ValidatedProduct>> func = async () =>
             {
-                return validatedProducts;
+                return product;
             };
             return TryAsync(func);
         }

@@ -16,11 +16,11 @@ namespace Proiect_PSSC.Domain.Workflows
     {
         public async Task<IOrderProcessingEvent> ExecuteAsync(OrderProcessingCommand command, 
                                                               Func<ProductId, TryAsync<bool>> checkProductExists,
-                                                              Func<List<ProductId>, TryAsync<List<ValidatedProduct>>> getAvailableProducts)
+                                                              Func<ProductId, TryAsync<ValidatedProduct>> getProductById)
         {
             UnvalidatedOrder unvalidatedOrder = new UnvalidatedOrder(command.ProductList, command.ClientId);
             IOrderState products = await OrderProcessingOperation.ValidateProducts(checkProductExists, unvalidatedOrder);
-            products = await OrderProcessingOperation.CheckAvailability(products, getAvailableProducts);
+            products = await OrderProcessingOperation.CheckAvailability(products, getProductById);
 
             return products.Match(
                     whenUnvalidatedOrder: unvalidatedOrder => new OrderProcessingFailedEvent("Unexpected unvalidated state") as IOrderProcessingEvent,
