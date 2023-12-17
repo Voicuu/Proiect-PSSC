@@ -4,6 +4,10 @@ using Proiect_PSSC.Domain.Models.Domain_Objects;
 using Proiect_PSSC.Domain.Workflows;
 using Proiect_PSSC.Domain.Models.Events;
 using static LanguageExt.Prelude;
+using Firebase.Database;
+using Proiect_PSSC.Firebase;
+using Firebase.Database.Query;
+using Newtonsoft.Json;
 
 namespace Proiect_PSSC
 {
@@ -14,7 +18,7 @@ namespace Proiect_PSSC
             var listOfProducts = ReadListOfProducts();
             OrderProcessingCommand command = new(listOfProducts, "10");
             OrderProcessingWorkflow workflow = new();
-            var result = await workflow.ExecuteAsync(command, CheckProductExists, GetProductById);
+            var result = await workflow.ExecuteAsync(command, CheckProductExistsAsync, GetProductById);
 
             result.Match(
                     whenOrderProcessingFailedEvent: @event =>
@@ -133,13 +137,44 @@ namespace Proiect_PSSC
             return Console.ReadLine();
         }
 
-        private static TryAsync<bool> CheckProductExists(ProductId productId)
+        private static async Task<TryAsync<bool>> CheckProductExistsAsync(ProductId productId)
         {
-            Func<Task<bool>> func = async () =>
+            var productOption = await GetProductAsync(productId);
+
+            return productOption.Match(
+                Some: product => TryAsync(() => Task.FromResult(true)),
+                None: () => TryAsync(() => Task.FromException<bool>(new Exception("Product not found")))
+            );
+        }
+
+        public static async Task<Option<ValidatedProduct>> GetProductAsync(ProductId productId)
+        {
+            var firebaseClient = FirebaseConfig.GetFirebaseClient();
+            var productDataSnapshot = await firebaseClient.Child("Products").Child(productId.Value).OnceSingleAsync<ProductDto>();
+
+            if (productDataSnapshot != null)
             {
-                return true;
-            };
-            return TryAsync(func);
+                var productData = productDataSnapshot;
+                if (!string.IsNullOrWhiteSpace(productData.ProductName?.Value) &&
+                    !string.IsNullOrWhiteSpace(productData.ProductPrice?.Value) &&
+                    !string.IsNullOrWhiteSpace(productData.ProductQuantity?.Value))
+                {
+                    if (int.TryParse(productData.ProductQuantity.Value, out var quantity) &&
+                        decimal.TryParse(productData.ProductPrice.Value, out var price))
+                    {
+                        var validatedProduct = new ValidatedProduct(
+                            new ProductId(productData.ProductId.Value),
+                            new ProductName(productData.ProductName.Value),
+                            new ProductQuantity(quantity),
+                            new ProductPrice(price)
+                        );
+
+                        return Some(validatedProduct);
+                    }
+                }
+            }
+
+            return None;
         }
 
         private static TryAsync<ValidatedProduct> GetProductById(ProductId productId)

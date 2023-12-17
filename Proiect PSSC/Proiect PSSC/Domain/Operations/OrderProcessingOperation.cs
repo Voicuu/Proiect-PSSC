@@ -17,7 +17,7 @@ namespace Proiect_PSSC.Domain.Operations
 {
     public static class OrderProcessingOperation
     {
-        public static Task<IOrderState> ValidateProducts(Func<ProductId, TryAsync<bool>> checkProductExist,
+        public static Task<IOrderState> ValidateProducts(Func<ProductId, Task<TryAsync<bool>>> checkProductExist,
                                                          UnvalidatedOrder unvalidatedOrder) =>
             unvalidatedOrder.ProductList
                             .Select(ValidateProduct(checkProductExist))
@@ -27,10 +27,10 @@ namespace Proiect_PSSC.Domain.Operations
                                   LeftAsync: errorMessage => Task.FromResult((IOrderState)new InvalidatedOrder(unvalidatedOrder.ProductList, errorMessage,unvalidatedOrder.ClientId))
                             );
 
-        private static Func<UnvalidatedProduct, EitherAsync<string, ValidatedProduct>> ValidateProduct(Func<ProductId, TryAsync<bool>> checkProductExist) =>
+        private static Func<UnvalidatedProduct, EitherAsync<string, ValidatedProduct>> ValidateProduct(Func<ProductId, Task<TryAsync<bool>>> checkProductExist) =>
             unvalidatedProduct => ValidateProduct(checkProductExist, unvalidatedProduct);
 
-        private static EitherAsync<string, ValidatedProduct> ValidateProduct(Func<ProductId, TryAsync<bool>> checkProductExist, 
+        private static EitherAsync<string, ValidatedProduct> ValidateProduct(Func<ProductId, Task<TryAsync<bool>>> checkProductExist, 
                                                                              UnvalidatedProduct unvalidatedProduct) =>
             from productName in ProductName.TryParse(unvalidatedProduct.ProductName)
                                    .ToEitherAsync(() => $"Invalid name ({unvalidatedProduct.ProductName})")
@@ -40,7 +40,7 @@ namespace Proiect_PSSC.Domain.Operations
                                    .ToEitherAsync(() => $"Invalid price ({unvalidatedProduct.ProductPrice})")
             from productId in ProductId.TryParse(unvalidatedProduct.ProductId)
                                .ToEitherAsync(() => $"Invalid id ({unvalidatedProduct.ProductId})")
-            from productExist in checkProductExist(productId)
+            from productExist in checkProductExist(productId).Result
                                    .ToEither(error => error.ToString())
             select new ValidatedProduct(productId, productName, productQuantity, productPrice);
 
@@ -114,5 +114,7 @@ namespace Proiect_PSSC.Domain.Operations
                                  validProduct.ProductQuantity,
                                  validProduct.ProductPrice,
                                  validProduct.ProductPrice * validProduct.ProductQuantity);
+
     }
+
 }
