@@ -1,4 +1,5 @@
-﻿using Proiect_PSSC.Domain.Models;
+﻿using Firebase.Database;
+using Proiect_PSSC.Domain.Models;
 using Proiect_PSSC.Domain.Models.Domain_Objects;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Proiect_PSSC.Domain.Commands
 {
-    public record OrderProcessingCommand(List<UnvalidatedProduct> ProductList, string ClientId)
+    public record OrderProcessingCommand(List<UnvalidatedProduct> ProductList, string ClientId, FirebaseClient FirebaseClient)
     {
     }
 }

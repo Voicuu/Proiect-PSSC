@@ -8,6 +8,7 @@ using Firebase.Database;
 using Proiect_PSSC.Firebase;
 using Firebase.Database.Query;
 using Newtonsoft.Json;
+using LanguageExt.Pipes;
 
 namespace Proiect_PSSC
 {
@@ -15,8 +16,24 @@ namespace Proiect_PSSC
     {
         static async Task Main(string[] args)
         {
+            var firebaseClient = FirebaseConfig.GetFirebaseClient();
+
+            string? clientId = ReadValue("Enter client id: ");
+            Console.Write("Enter password: ");
+            string password = ReadPassword();
+
+            var res = await CheckUserExistsAsync(clientId, password, firebaseClient);
+
+            res.Match(
+                Succ: boolVal => Execute(clientId, firebaseClient),
+                Fail: ex => Console.WriteLine("User not found")
+                );
+        }
+
+        private static async Task Execute(string clientId, FirebaseClient firebaseClient)
+        {
             var listOfProducts = ReadListOfProducts();
-            OrderProcessingCommand command = new(listOfProducts, "10");
+            OrderProcessingCommand command = new(listOfProducts, clientId, firebaseClient);
             OrderProcessingWorkflow workflow = new();
             var result = await workflow.ExecuteAsync(command, CheckProductExistsAsync, GetProductAsync);
 
@@ -54,6 +71,8 @@ namespace Proiect_PSSC
 
                                     Console.WriteLine();
 
+                                    PrintBillToFile(@event.ProductList, @event.Total, @event.ClientId);
+
                                     ShippingCommand shippingCommand = new(@event.ProductList, @event.Total, @event.ClientId);
                                     ShippingWorkflow shippingWorkflow = new();
 
@@ -76,6 +95,50 @@ namespace Proiect_PSSC
                     }
                 );
         }
+
+        private static void PrintBillToFile(IReadOnlyCollection<AvailableProduct> products, decimal total, string clientId)
+        {
+            string path = $"Bills/{clientId}{DateTime.Now}.txt";
+            File.Create(path);
+
+            File.AppendText(path).WriteLine("Order details");
+            File.AppendText(path).WriteLine();
+            foreach (var product in products)
+            {
+                File.AppendText(path).WriteLine($"{product.ProductName.Value}");
+                File.AppendText(path).WriteLine($"{product.ProductQuantity.Value} * {product.ProductPrice.Value} = {product.TotalProductPrice.Value}$");
+                File.AppendText(path).WriteLine();
+            }
+
+            File.AppendText(path).WriteLine($"Total payed: {total}$");
+        }
+
+        private static string ReadPassword()
+        {
+            string password = "";
+            ConsoleKeyInfo key;
+
+            do
+            {
+                key = Console.ReadKey(true);
+                if (key.Key == ConsoleKey.Backspace && password.Length > 0)
+                {
+                    password = password.Substring(0, password.Length - 1);
+                    Console.Write("\b \b");
+                }
+                else if (key.Key != ConsoleKey.Enter)
+                {
+                    password += key.KeyChar;
+                    Console.Write("*");
+                }
+
+            } while (key.Key != ConsoleKey.Enter);
+
+            Console.WriteLine();
+
+            return password;
+        }
+
 
         private static string ChoosePaymentMethod()
         {
@@ -137,9 +200,9 @@ namespace Proiect_PSSC
             return Console.ReadLine();
         }
 
-        private static async Task<TryAsync<bool>> CheckProductExistsAsync(ProductId productId)
+        private static async Task<TryAsync<bool>> CheckProductExistsAsync(ProductId productId, FirebaseClient firebaseClient)
         {
-            var productOption = await GetProductAsync(productId);
+            var productOption = await GetProductAsync(productId, firebaseClient);
 
             return productOption.Match(
                 Some: product => TryAsync(() => Task.FromResult(true)),
@@ -147,9 +210,9 @@ namespace Proiect_PSSC
             );
         }
 
-        public static async Task<Option<ValidatedProduct>> GetProductAsync(ProductId productId)
+        private static async Task<Option<ValidatedProduct>> GetProductAsync(ProductId productId, FirebaseClient firebaseClient)
         {
-            var firebaseClient = FirebaseConfig.GetFirebaseClient();
+            //var firebaseClient = FirebaseConfig.GetFirebaseClient();
             var productDataSnapshot = await firebaseClient.Child("Products").Child(productId.Value).OnceSingleAsync<ProductDto>();
 
             if (productDataSnapshot != null)
@@ -177,15 +240,34 @@ namespace Proiect_PSSC
             return None;
         }
 
-        private static TryAsync<ValidatedProduct> GetProductById(ProductId productId)
+        private static async Task<TryAsync<bool>> CheckUserExistsAsync(string clientId, string password, FirebaseClient firebaseClient)
         {
-            ValidatedProduct product = new(new("P111"), new("a"), new(4), new(3));
+            var userExists = await GetUserAsync(clientId, password, firebaseClient);
 
-            Func<Task<ValidatedProduct>> func = async () =>
+            return userExists.Match(
+                Some: exists => TryAsync(() => Task.FromResult(true)),
+                None: () => TryAsync(() => Task.FromException<bool>(new Exception("User not found")))
+            );
+        }
+
+        private static async Task<Option<bool>> GetUserAsync(string clientId, string password, FirebaseClient firebaseClient)
+        {
+            //var firebaseClient = FirebaseConfig.GetFirebaseClient();
+            var userDataSnapshot = await firebaseClient.Child("Users").Child(clientId).Child("password").OnceSingleAsync<string>();
+
+            if (userDataSnapshot != null)
             {
-                return product;
-            };
-            return TryAsync(func);
+                var clientPassword = userDataSnapshot;
+                if (!string.IsNullOrWhiteSpace(clientPassword))
+                {
+                    if (password == clientPassword)
+                    {
+                        return Some(true);
+                    }
+                }
+            }
+
+            return None;
         }
     }
 }
