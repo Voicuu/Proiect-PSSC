@@ -28,6 +28,7 @@ namespace Proiect_PSSC
                 Succ: boolVal => Execute(clientId, firebaseClient),
                 Fail: ex => Console.WriteLine("User not found")
                 );
+            Console.ReadLine();
         }
 
         private static async Task Execute(string clientId, FirebaseClient firebaseClient)
@@ -50,7 +51,7 @@ namespace Proiect_PSSC
                         ShowList(@event.ProductList);
 
                         Console.WriteLine();
-
+                        
                         paymentMethod = ChoosePaymentMethod();
 
                         BillingCommand billingCommand = new(@event.ProductList, @event.ClientId, paymentMethod);
@@ -146,7 +147,8 @@ namespace Proiect_PSSC
             do
             {
                 paymentMethod = ReadValue("How would you like to pay: (Card/Cash)\nYour choice: ").ToLower();
-                
+                //Console.WriteLine($"Entered Payment Method: {paymentMethod}");
+
             } while (paymentMethod!="cash" && paymentMethod != "card");
 
             return paymentMethod;
@@ -160,37 +162,26 @@ namespace Proiect_PSSC
             }
         }
 
-        private static List<UnvalidatedProduct> ReadListOfProducts()
+        private static List<UnvalidatedProduct> ReadListOfProducts(string prompt = "Product id (or type 'done' to finish): ")
         {
             List<UnvalidatedProduct> listOfProducts = new();
-            do
+
+            while (true)
             {
-                var productId = ReadValue("Product id: ");
-                if (string.IsNullOrEmpty(productId))
+                var productId = ReadValue(prompt);
+
+                if (string.IsNullOrWhiteSpace(productId) || productId.ToLower() == "done")
                 {
                     break;
                 }
 
                 var productName = ReadValue("Product name: ");
-                if (string.IsNullOrEmpty(productName))
-                {
-                    break;
-                }
-
                 var productQuantity = ReadValue("Product quantity: ");
-                if (string.IsNullOrEmpty(productQuantity))
-                {
-                    break;
-                }
-
                 var productPrice = ReadValue("Product price: ");
-                if (string.IsNullOrEmpty(productPrice))
-                {
-                    break;
-                }
 
                 listOfProducts.Add(new(productId, productName, productQuantity, productPrice));
-            } while (true);
+            }
+
             return listOfProducts;
         }
 
