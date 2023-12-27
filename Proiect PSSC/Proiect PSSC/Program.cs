@@ -78,6 +78,8 @@ namespace Proiect_PSSC
 
                                     PrintBillToFile(@event.ProductList, @event.Total, @event.ClientId);
 
+                                    SaveOrderToFirebase(@event.ProductList, @event.Total, @event.ClientId, firebaseClient);
+
                                     ShippingCommand shippingCommand = new(@event.ProductList, @event.Total, @event.ClientId);
                                     ShippingWorkflow shippingWorkflow = new();
 
@@ -275,5 +277,27 @@ namespace Proiect_PSSC
             }
             return None;
         }
+
+        private static async Task SaveOrderToFirebase(IReadOnlyCollection<AvailableProduct> products, decimal total, string clientId, FirebaseClient firebaseClient)
+        {
+            var order = new
+            {
+                ClientId = clientId,
+                Date = DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss"),
+                Items = products.ToDictionary(
+                    product => product.ProductId.Value,
+                    product => new
+                    {
+                        ProductName = product.ProductName.Value,
+                        Quantity = product.ProductQuantity.Value,
+                        Price = product.ProductPrice.Value
+                    }),
+                Total = total
+            };
+
+            var orderKey = await firebaseClient.Child("Orders").PostAsync(order);
+            Console.WriteLine($"Order saved to Firebase with key: {orderKey.Key}");
+        }
+
     }
 }
