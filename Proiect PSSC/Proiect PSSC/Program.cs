@@ -22,12 +22,16 @@ namespace Proiect_PSSC
             Console.Write("Enter password: ");
             string password = ReadPassword();
 
-            var res = await CheckUserExistsAsync(clientId, password, firebaseClient);
+            var userExists = await CheckUserExistsAsync(clientId, password, firebaseClient);
+            if (userExists)
+            {
+                await Execute(clientId, firebaseClient);
+            }
+            else
+            {
+                Console.WriteLine("User not found or invalid credentials");
+            }
 
-            res.Match(
-                Succ: boolVal => Execute(clientId, firebaseClient),
-                Fail: ex => Console.WriteLine("User not found")
-                );
             Console.ReadLine();
         }
 
@@ -51,7 +55,7 @@ namespace Proiect_PSSC
                         ShowList(@event.ProductList);
 
                         Console.WriteLine();
-                        
+
                         paymentMethod = ChoosePaymentMethod();
 
                         BillingCommand billingCommand = new(@event.ProductList, @event.ClientId, paymentMethod);
@@ -99,20 +103,44 @@ namespace Proiect_PSSC
 
         private static void PrintBillToFile(IReadOnlyCollection<AvailableProduct> products, decimal total, string clientId)
         {
-            string path = $"Bills/{clientId}{DateTime.Now}.txt";
-            File.Create(path);
-
-            File.AppendText(path).WriteLine("Order details");
-            File.AppendText(path).WriteLine();
-            foreach (var product in products)
+            try
             {
-                File.AppendText(path).WriteLine($"{product.ProductName.Value}");
-                File.AppendText(path).WriteLine($"{product.ProductQuantity.Value} * {product.ProductPrice.Value} = {product.TotalProductPrice.Value}$");
-                File.AppendText(path).WriteLine();
-            }
+                var projectRoot = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\..\"));
+                var billsDirectory = Path.Combine(projectRoot, "Bills");
+                Directory.CreateDirectory(billsDirectory);
 
-            File.AppendText(path).WriteLine($"Total payed: {total}$");
+                var fileName = $"Invoice_{clientId}_{DateTime.Now:ddMMyyyyHHmmss}.txt";
+                var filePath = Path.Combine(billsDirectory, fileName);
+
+                using (var writer = new StreamWriter(filePath))
+                {
+                    writer.WriteLine(new string('-', 40));
+                    writer.WriteLine("INVOICE".PadLeft(20));
+                    writer.WriteLine($"Client ID: {clientId}".PadLeft(20));
+                    writer.WriteLine($"Date: {DateTime.Now:dd-MM-yyyy HH:mm:ss}".PadLeft(28));
+                    writer.WriteLine(new string('-', 40));
+                    writer.WriteLine("{0,-20} {1,5} {2,8}", "Item", "Qty", "Price");
+                    writer.WriteLine(new string('-', 40));
+
+                    foreach (var product in products)
+                    {
+                        writer.WriteLine("{0,-20} {1,5} {2,8:C}", product.ProductName.Value, product.ProductQuantity.Value, product.ProductPrice.Value);
+                    }
+
+                    writer.WriteLine(new string('-', 40));
+                    writer.WriteLine("{0,-26} {1,8:C}", "Total paid:", total);
+                    writer.WriteLine(new string('-', 40));
+                }
+
+                //Console.WriteLine($"Invoice written successfully to {filePath}");
+                //Console.WriteLine();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error writing invoice to file: {ex.Message}");
+            }
         }
+
 
         private static string ReadPassword()
         {
@@ -149,14 +177,14 @@ namespace Proiect_PSSC
                 paymentMethod = ReadValue("How would you like to pay: (Card/Cash)\nYour choice: ").ToLower();
                 //Console.WriteLine($"Entered Payment Method: {paymentMethod}");
 
-            } while (paymentMethod!="cash" && paymentMethod != "card");
+            } while (paymentMethod != "cash" && paymentMethod != "card");
 
             return paymentMethod;
         }
 
         private static void ShowList(IReadOnlyCollection<AvailableProduct> products)
         {
-            foreach (AvailableProduct product in products )
+            foreach (AvailableProduct product in products)
             {
                 Console.WriteLine(product.ToString());
             }
@@ -231,33 +259,20 @@ namespace Proiect_PSSC
             return None;
         }
 
-        private static async Task<TryAsync<bool>> CheckUserExistsAsync(string clientId, string password, FirebaseClient firebaseClient)
+        private static async Task<bool> CheckUserExistsAsync(string clientId, string password, FirebaseClient firebaseClient)
         {
-            var userExists = await GetUserAsync(clientId, password, firebaseClient);
+            var userExistsOption = await GetUserAsync(clientId, password, firebaseClient);
 
-            return userExists.Match(
-                Some: exists => TryAsync(() => Task.FromResult(true)),
-                None: () => TryAsync(() => Task.FromException<bool>(new Exception("User not found")))
-            );
+            return userExistsOption.IfNone(false);
         }
 
         private static async Task<Option<bool>> GetUserAsync(string clientId, string password, FirebaseClient firebaseClient)
         {
-            //var firebaseClient = FirebaseConfig.GetFirebaseClient();
             var userDataSnapshot = await firebaseClient.Child("Users").Child(clientId).Child("password").OnceSingleAsync<string>();
-
-            if (userDataSnapshot != null)
+            if (userDataSnapshot != null && password == userDataSnapshot)
             {
-                var clientPassword = userDataSnapshot;
-                if (!string.IsNullOrWhiteSpace(clientPassword))
-                {
-                    if (password == clientPassword)
-                    {
-                        return Some(true);
-                    }
-                }
+                return Some(true);
             }
-
             return None;
         }
     }
