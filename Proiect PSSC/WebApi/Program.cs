@@ -6,8 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
-builder.Services.AddTransient<BillingWorkflow>();
 builder.Services.AddScoped<ProductRepository>();
+builder.Services.AddScoped<OrderRepository>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

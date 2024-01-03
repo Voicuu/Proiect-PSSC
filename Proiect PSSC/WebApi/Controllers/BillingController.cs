@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using LanguageExt.ClassInstances;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Proiect_PSSC.Domain.Models.Domain_Objects;
 using Proiect_PSSC.Domain.Workflows;
 using WebApi.Dto;
 using WebApi.Repository;
@@ -10,13 +12,13 @@ namespace WebApi.Controllers
     [ApiController]
     public class BillingController : ControllerBase
     {
-        private BillingWorkflow billingWorkflow;
         private ProductRepository repository;
+        private OrderRepository orderRepository;
 
-        public BillingController(BillingWorkflow billingWorkflow)
+        public BillingController()
         {
-            this.billingWorkflow = billingWorkflow;
             this.repository = new();
+            this.orderRepository = new();
         }
 
         [HttpGet("/all")]
@@ -35,6 +37,18 @@ namespace WebApi.Controllers
                 return NotFound($"Product with id {productId} not found!");
             }
             return Ok(product);
+        }
+
+        [HttpGet("/bill")]
+        public async Task<IActionResult> GetBillById([FromQuery(Name = "orderId")] string orderId,
+                                                     [FromQuery(Name = "clientId")] string clientId)
+        {
+            var bill = await orderRepository.GetOrderItem(clientId, orderId);
+            if (bill == null)
+            {
+                return NotFound($"Order with id {orderId} not found!");
+            }
+            return Ok(bill);
         }
     }
 }
