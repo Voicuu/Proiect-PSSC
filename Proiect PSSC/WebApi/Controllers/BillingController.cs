@@ -14,11 +14,13 @@ namespace WebApi.Controllers
     {
         private ProductRepository repository;
         private OrderRepository orderRepository;
+        private UserRepository userRepository;
 
         public BillingController()
         {
             this.repository = new();
             this.orderRepository = new();
+            this.userRepository = new();
         }
 
         [HttpGet("/all")]
@@ -43,6 +45,12 @@ namespace WebApi.Controllers
         public async Task<IActionResult> GetBillById([FromQuery(Name = "orderId")] string orderId,
                                                      [FromQuery(Name = "clientId")] string clientId)
         {
+            var userExists = await userRepository.CheckClientExists(clientId);
+            if (userExists == false)
+            {
+                return NotFound($"Client with id {clientId} does not exist!");
+            }
+
             var bill = await orderRepository.GetOrderItem(clientId, orderId);
             if (bill == null)
             {
