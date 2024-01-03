@@ -12,6 +12,8 @@ using static LanguageExt.Prelude;
 using LanguageExt.Common;
 using LanguageExt.Pretty;
 using Firebase.Database;
+using Firebase.Database.Query;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Proiect_PSSC.Domain.Operations
 {
@@ -77,11 +79,20 @@ namespace Proiect_PSSC.Domain.Operations
                                                                                               Func<ProductId, FirebaseClient, Task<Option<ValidatedProduct>>> getProductById,
                                                                                               FirebaseClient firebaseClient)
         {
-            bool success = await CheckAvailability(validatedOrder.ProductList, getProductById, firebaseClient);
+            bool success = await CheckAvailabilityAndUpdateQuantities(validatedOrder.ProductList, getProductById, firebaseClient);
 
             if (success)
             {
-                return new AvailableOrder(validatedOrder.ProductList
+                List<ValidatedProduct> dbProducts = new();
+                foreach(var product in validatedOrder.ProductList)
+                {
+                    var dbProduct =  await getProductById(product.ProductId, firebaseClient);
+                    dbProduct.Match(
+                        Some: result => dbProducts.Add(result),
+                        None: () => Console.WriteLine($"Product {product.ProductId.Value} not found.")
+                        );
+                }
+                return new AvailableOrder(dbProducts
                                           .Select(CalculateTotalProductPrice)
                                           .ToList()
                                           .AsReadOnly(),
@@ -115,6 +126,51 @@ namespace Proiect_PSSC.Domain.Operations
 
             return true;
         }
+
+        private static async Task<bool> CheckAvailabilityAndUpdateQuantities(IReadOnlyCollection<ValidatedProduct> productList,
+                                                                             Func<ProductId, FirebaseClient, Task<Option<ValidatedProduct>>> getProductById,
+                                                                             FirebaseClient firebaseClient)
+        {
+            // First, check the availability of all products in the order.
+            foreach (var product in productList)
+            {
+                var productOption = await getProductById(product.ProductId, firebaseClient);
+
+                if (productOption.IsNone) return false; // Product doesn't exist.
+
+                var existingProduct = productOption.IfNone(() => throw new InvalidOperationException("Product not found"));
+
+                // Check if enough stock is available.
+                if (existingProduct.ProductQuantity.Value < product.ProductQuantity.Value)
+                {
+                    Console.WriteLine($"Not enough stock for product {product.ProductId.Value}.");
+                    return false;
+                }
+            }
+
+            // All products are available, proceed to update the quantities.
+            foreach (var product in productList)
+            {
+                var productOption = await getProductById(product.ProductId, firebaseClient);
+
+                if (productOption.IsNone) throw new InvalidOperationException("Product not found");
+
+                var existingProduct = productOption.IfNone(() => throw new InvalidOperationException("Product not found"));
+
+                // Calculate the new quantity.
+                var newQuantity = existingProduct.ProductQuantity.Value - product.ProductQuantity.Value;
+
+                // Update the product quantity in Firebase.
+                await firebaseClient
+                    .Child("Products")
+                    .Child(product.ProductId.Value)
+                    .Child("ProductQuantity")
+                    .PutAsync(new ProductQuantity(newQuantity));
+            }
+
+            return true;
+        }
+
 
 
         private static AvailableProduct CalculateTotalProductPrice(ValidatedProduct validProduct) =>

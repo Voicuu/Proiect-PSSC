@@ -25,6 +25,7 @@ namespace Proiect_PSSC
             var userExists = await CheckUserExistsAsync(clientId, password, firebaseClient);
             if (userExists)
             {
+                Console.WriteLine("Login successful!");
                 await Execute(clientId, firebaseClient);
             }
             else
@@ -205,11 +206,9 @@ namespace Proiect_PSSC
                     break;
                 }
 
-                var productName = ReadValue("Product name: ");
                 var productQuantity = ReadValue("Product quantity: ");
-                var productPrice = ReadValue("Product price: ");
 
-                listOfProducts.Add(new(productId, productName, productQuantity, productPrice));
+                listOfProducts.Add(new(productId, "", productQuantity, "1"));
             }
 
             return listOfProducts;
