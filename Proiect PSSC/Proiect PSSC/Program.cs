@@ -282,7 +282,6 @@ namespace Proiect_PSSC
         {
             var order = new
             {
-                ClientId = clientId,
                 Date = DateTime.Now.ToString("dd-MM-yyyy HH:mm:ss"),
                 Items = products.ToDictionary(
                     product => product.ProductId.Value,
@@ -295,9 +294,14 @@ namespace Proiect_PSSC
                 Total = total
             };
 
-            var orderKey = await firebaseClient.Child("Orders").PostAsync(order);
-            Console.WriteLine($"Order saved to Firebase with key: {orderKey.Key}");
+            var orderKey = await firebaseClient
+                .Child("Orders")
+                .Child(clientId)
+                .PostAsync(order);
+
+            Console.WriteLine($"Order saved to Firebase under client '{clientId}' with key: {orderKey.Key}");
         }
+
 
     }
 }
