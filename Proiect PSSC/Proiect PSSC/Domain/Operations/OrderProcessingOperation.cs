@@ -88,7 +88,7 @@ namespace Proiect_PSSC.Domain.Operations
                 {
                     var dbProduct =  await getProductById(product.ProductId, firebaseClient);
                     dbProduct.Match(
-                        Some: result => dbProducts.Add(result),
+                        Some: result => dbProducts.Add(new(product.ProductId,result.ProductName,product.ProductQuantity,result.ProductPrice)),
                         None: () => Console.WriteLine($"Product {product.ProductId.Value} not found.")
                         );
                 }
@@ -102,45 +102,18 @@ namespace Proiect_PSSC.Domain.Operations
             return validatedOrder;
         }
 
-        private static async Task<bool> CheckAvailability(IReadOnlyCollection<ValidatedProduct> productList,
-                                                          Func<ProductId, FirebaseClient, Task<Option<ValidatedProduct>>> getProductById, 
-                                                          FirebaseClient firebaseClient)
-        {
-            foreach (ValidatedProduct product in productList)
-            {
-                var resultOption = await getProductById(product.ProductId, firebaseClient);
-
-                if (resultOption.IsNone)
-                {
-                    Console.WriteLine("Not enough products.");
-                    return false;
-                }
-
-                var requestedProduct = resultOption.IfNone(() => throw new InvalidOperationException("Product not found"));
-
-                if (requestedProduct.ProductQuantity.Value < product.ProductQuantity.Value)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         private static async Task<bool> CheckAvailabilityAndUpdateQuantities(IReadOnlyCollection<ValidatedProduct> productList,
                                                                              Func<ProductId, FirebaseClient, Task<Option<ValidatedProduct>>> getProductById,
                                                                              FirebaseClient firebaseClient)
         {
-            // First, check the availability of all products in the order.
             foreach (var product in productList)
             {
                 var productOption = await getProductById(product.ProductId, firebaseClient);
 
-                if (productOption.IsNone) return false; // Product doesn't exist.
+                if (productOption.IsNone) return false;
 
                 var existingProduct = productOption.IfNone(() => throw new InvalidOperationException("Product not found"));
 
-                // Check if enough stock is available.
                 if (existingProduct.ProductQuantity.Value < product.ProductQuantity.Value)
                 {
                     Console.WriteLine($"Not enough stock for product {product.ProductId.Value}.");
@@ -148,7 +121,6 @@ namespace Proiect_PSSC.Domain.Operations
                 }
             }
 
-            // All products are available, proceed to update the quantities.
             foreach (var product in productList)
             {
                 var productOption = await getProductById(product.ProductId, firebaseClient);
@@ -157,10 +129,8 @@ namespace Proiect_PSSC.Domain.Operations
 
                 var existingProduct = productOption.IfNone(() => throw new InvalidOperationException("Product not found"));
 
-                // Calculate the new quantity.
                 var newQuantity = existingProduct.ProductQuantity.Value - product.ProductQuantity.Value;
 
-                // Update the product quantity in Firebase.
                 await firebaseClient
                     .Child("Products")
                     .Child(product.ProductId.Value)

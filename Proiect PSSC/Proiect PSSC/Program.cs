@@ -16,29 +16,37 @@ namespace Proiect_PSSC
     {
         static async Task Main(string[] args)
         {
+            Console.WriteLine("Welcome to Proiect PSSC!");
+            Console.WriteLine("======================================\n");
+
             var firebaseClient = FirebaseConfig.GetFirebaseClient();
 
-            string? clientId = ReadValue("Enter client id: ");
-            Console.Write("Enter password: ");
+            Console.WriteLine("Hey there, let's get you logged in. :)");
+            string? clientId = ReadValue("Enter your client id: ");
+            Console.Write("Enter your password: ");
             string password = ReadPassword();
+            Console.WriteLine();
 
             var userExists = await CheckUserExistsAsync(clientId, password, firebaseClient);
             if (userExists)
             {
-                Console.WriteLine("Login successful!");
+                Console.WriteLine("\nLogin successful! Ready to place an order.\n");
                 await Execute(clientId, firebaseClient);
             }
             else
             {
-                Console.WriteLine("User not found or invalid credentials");
+                Console.WriteLine("\nUser not found or invalid credentials. Please try again.");
             }
 
+            Console.WriteLine("\nThank you for buying from us!");
+            Console.WriteLine("Goodbye!");
             Console.ReadLine();
         }
 
         private static async Task Execute(string clientId, FirebaseClient firebaseClient)
         {
             var listOfProducts = ReadListOfProducts();
+
             OrderProcessingCommand command = new(listOfProducts, clientId, firebaseClient);
             OrderProcessingWorkflow workflow = new();
             var result = await workflow.ExecuteAsync(command, CheckProductExistsAsync, GetProductAsync);
@@ -187,10 +195,13 @@ namespace Proiect_PSSC
 
         private static void ShowList(IReadOnlyCollection<AvailableProduct> products)
         {
+            Console.WriteLine("\nHere is the summary of your order:");
+            Console.WriteLine(new string('-', 40));
             foreach (AvailableProduct product in products)
             {
-                Console.WriteLine(product.ToString());
+                Console.WriteLine($"{product.ProductName.Value}, Quantity: {product.ProductQuantity.Value}, Price per item: {product.ProductPrice.Value:C}");
             }
+            Console.WriteLine(new string('-', 40));
         }
 
         private static List<UnvalidatedProduct> ReadListOfProducts(string prompt = "Product id (or type 'done' to finish): ")
@@ -199,20 +210,40 @@ namespace Proiect_PSSC
 
             while (true)
             {
-                var productId = ReadValue(prompt);
+                Console.Write(prompt);
+                var productId = Console.ReadLine();
 
-                if (string.IsNullOrWhiteSpace(productId) || productId.ToLower() == "done")
+                if (string.IsNullOrWhiteSpace(productId))
+                {
+                    Console.WriteLine("No product ID entered. Please enter a product ID and type 'done' when finished adding products.");
+                    continue;
+                }
+                else if (productId.ToLower() == "done" && listOfProducts.Count > 0)
                 {
                     break;
                 }
+                else if (productId.ToLower() == "done")
+                {
+                    Console.WriteLine("No products have been added. Please add at least one product.");
+                    continue;
+                }
 
-                var productQuantity = ReadValue("Product quantity: ");
+                Console.Write("Enter the quantity you need: ");
+                var productQuantity = Console.ReadLine();
 
-                listOfProducts.Add(new(productId, "", productQuantity, "1"));
+                if (!string.IsNullOrWhiteSpace(productQuantity) && int.TryParse(productQuantity, out int quantity) && quantity > 0)
+                {
+                    listOfProducts.Add(new(productId, "", productQuantity, "1"));
+                }
+                else
+                {
+                    Console.WriteLine("Invalid quantity entered. Please try again.");
+                }
             }
 
             return listOfProducts;
         }
+
 
         private static string? ReadValue(string prompt)
         {
