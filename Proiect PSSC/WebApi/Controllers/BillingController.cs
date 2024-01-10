@@ -58,5 +58,20 @@ namespace WebApi.Controllers
             }
             return Ok(bill);
         }
+
+        [HttpGet("/allOrderIds")]
+        public async Task<IActionResult> GetAllOrderIds([FromQuery(Name = "clientId")] string clientId)
+        {
+            var userExists = await userRepository.CheckClientExists(clientId);
+            if (userExists == false)
+            {
+                return NotFound($"Client with id {clientId} does not exist!");
+            }
+
+            var orderIds = await orderRepository.GetAllOrderIds(clientId);
+
+            return Ok(orderIds);
+        }
+
     }
 }

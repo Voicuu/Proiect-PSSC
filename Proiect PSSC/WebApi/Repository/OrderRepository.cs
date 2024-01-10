@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using WebApi.Dto;
 using System.Collections.Generic;
 using Firebase.Database.Query;
+using Newtonsoft.Json.Linq;
 
 namespace WebApi.Repository
 {
@@ -48,6 +49,22 @@ namespace WebApi.Repository
 
             return orderItem;
         }
+        public async Task<List<string>> GetAllOrderIds(string clientId)
+        {
+            var orderIdsResponse = await client
+                .Child("Orders")
+                .Child(clientId)
+                .OnceSingleAsync<JObject>();
+
+            if (orderIdsResponse == null)
+            {
+                return new List<string>();
+            }
+
+            var orderIds = orderIdsResponse.Properties().Select(property => property.Name).ToList();
+            return orderIds;
+        }
+
     }
 
     // Assuming the structure of your order data in Firebase is represented by this class
